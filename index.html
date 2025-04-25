@@ -42,7 +42,7 @@
                 })
                 .catch(error => {
                     console.error("配置加载失败：", error);
-                    alert("⚠️ 无法加载前缀配置，检查文件或ACL权限");
+                    alert("⚠️ 无法加载配置，检查文件或ACL权限");
                 });
         };
 
@@ -67,7 +67,7 @@
             const encodedString = encodeToBase64(userInput);
 
             if (!prefixConfig.url1 || !prefixConfig.url2) {
-                alert("⚠️ 前缀尚未加载");
+                alert("⚠️ 配置尚未加载");
                 return;
             }
 
@@ -91,7 +91,7 @@
         function generateRedirectUrl() {
             const rawUrl = document.getElementById("rawRedirectInput").value;
             if (!prefixConfig.redirectPrefix) {
-                alert("⚠️ 前缀尚未加载");
+                alert("⚠️ 配置尚未加载");
                 return;
             }
             const encodedUrl = encodeURIComponent(rawUrl);
