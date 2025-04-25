@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>链接生成器</title>
+
+    <script>
+        let prefixConfig = {};
+
+        window.onload = function () {
+            fetch("https://linlinread.oss-cn-beijing.aliyuncs.com/www_files/prefix.json")
+                .then(response => response.json())
+                .then(data => {
+                    prefixConfig = data;
+
+                    // 设置默认值：客服用户名（如 comaps）
+                    if (data.taobaoid) {
+                        document.getElementById("inputString").value = data.taobaoid;
+                    }
+
+                    // 设置默认值：草料跳转链接
+                    if (data.caoliao) {
+                        document.getElementById("rawRedirectInput").value = data.caoliao;
+                    }
+					if (data.caoliao) {
+						document.getElementById("caoliaoLink").textContent = data.caoliao;
+						} else {
+							document.getElementById("caoliaoLink").textContent = "None";
+								}
+
+					if (data.youma) {
+						document.getElementById("youmaLink").textContent = data.youma;
+						} else {
+							document.getElementById("youmaLink").textContent = "None";
+								}
+                    if (data.jiema) {
+						document.getElementById("jiemaLink").textContent = data.jiema;
+						} else {
+							document.getElementById("jiemaLink").textContent = "None";
+								}
+                })
+                .catch(error => {
+                    console.error("配置加载失败：", error);
+                    alert("⚠️ 无法加载前缀配置，检查文件或ACL权限");
+                });
+        };
+
+        function encodeToBase64(inputString) {
+            return btoa(unescape(encodeURIComponent(inputString)));
+        }
+
+        function replaceTrailingEqualsWithEncoded(url) {
+            const match = url.match(/=+$/);
+            if (match) {
+                const equalSigns = match[0];
+                const encodedEquals = "%3d".repeat(equalSigns.length);
+                const replacedUrl = url.replace(/=+$/, encodedEquals);
+                const notice = `（已将结尾的 ${equalSigns} 替换为 %3d）`;
+                return { url: replacedUrl, notice: notice };
+            }
+            return { url: url, notice: "" };
+        }
+
+        function generate() {
+            const userInput = document.getElementById("inputString").value;
+            const encodedString = encodeToBase64(userInput);
+
+            if (!prefixConfig.url1 || !prefixConfig.url2) {
+                alert("⚠️ 前缀尚未加载");
+                return;
+            }
+
+            // 商家1
+            let { url: resultUrl1, notice: notice1 } = replaceTrailingEqualsWithEncoded(
+                prefixConfig.url1 + encodedString
+            );
+            document.getElementById("result1").innerHTML = `<strong>个人/商家1：</strong><span class="url">${resultUrl1}</span> ${notice1}`;
+
+            // 商家2
+            const resultUrl3 = prefixConfig.url1 + encodedString + (prefixConfig.url3_extra || "");
+            document.getElementById("result3").innerHTML = `<strong>个人/商家2：</strong><span class="url">${resultUrl3}</span>`;
+
+            // 商家3
+            let { url: resultUrl2, notice: notice2 } = replaceTrailingEqualsWithEncoded(
+                prefixConfig.url2 + encodedString
+            );
+            document.getElementById("result2").innerHTML = `<strong>商家3：</strong><span class="url">${resultUrl2}</span> ${notice2}`;
+        }
+
+        function generateRedirectUrl() {
+            const rawUrl = document.getElementById("rawRedirectInput").value;
+            if (!prefixConfig.redirectPrefix) {
+                alert("⚠️ 前缀尚未加载");
+                return;
+            }
+            const encodedUrl = encodeURIComponent(rawUrl);
+            const finalUrl = prefixConfig.redirectPrefix + encodedUrl;
+            document.getElementById("redirectResult").innerHTML = `<strong>跳转链接：</strong><span class="url">${finalUrl}</span>`;
+        }
+
+        function copyResult(resultId, noticeId) {
+            const url = document.querySelector(`#${resultId} .url`).textContent;
+            copyToClipboard(url);
+
+            const noticeElem = document.getElementById(noticeId);
+            noticeElem.textContent = "✅ 已复制URL";
+            setTimeout(() => {
+                noticeElem.textContent = "";
+            }, 2000);
+        }
+
+        function copyToClipboard(text) {
+            const tempInput = document.createElement("textarea");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+        }
+    </script>
+</head>
+<body>
+    <h2>客服</h2>
+    <p>优先使用<strong>个人/商家2</strong>；其他两个网址结尾如果是 "=" 替换为 "%3d"，否则安卓不识别</p>
+    <p>转个人：用户名最好是默认的 tb012345；电脑旺旺设置接收陌生人消息 + 不用验证就能加我好友</p>
+
+    <input type="text" id="inputString" placeholder="用户名" />
+    <button onclick="generate()">生成客服URL</button>
+
+    <p id="result1"></p>
+    <button class="copy-btn" onclick="copyResult('result1', 'copyNotice1')">📋 复制个人/商家1</button>
+    <span id="copyNotice1" class="copy-notice"></span>
+
+    <p id="result3"></p>
+    <button class="copy-btn" onclick="copyResult('result3', 'copyNotice3')">📋 复制个人/商家2</button>
+    <span id="copyNotice3" class="copy-notice"></span>
+
+    <p id="result2"></p>
+    <button class="copy-btn" onclick="copyResult('result2', 'copyNotice2')">📋 复制商家3</button>
+    <span id="copyNotice2" class="copy-notice"></span>
+
+    <hr />
+
+    <h2>跳转</h2>
+	<p>
+    草料 <span id="caoliaoLink">None</span><br>
+    优码 <span id="youmaLink">None</span><br>
+    <a href="./land.html">Land Page</a>
+	</p>
+    <input type="text" id="rawRedirectInput" placeholder="跳转链接" />
+    <br /><br />
+    <button onclick="generateRedirectUrl()">生成跳转链接</button>
+    <p id="redirectResult"></p>
+    <button class="copy-btn" onclick="copyResult('redirectResult', 'copyNoticeRedirect')">📋 复制跳转链接</button>
+    <span id="copyNoticeRedirect" class="copy-notice"></span>
+
+    <p>① 创建草料二维码 <br>② 解码获取网址 <span id="jiemaLink">None</span> <br>③ 网页F12获取小程序链接</p>
+    <img src="https://linlinread.oss-cn-beijing.aliyuncs.com/www_files/get_weixin.jpg" width="50%" height="50%" />
+</body>
+</html>
